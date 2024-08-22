@@ -45,14 +45,17 @@ else:
 
 # set up simulation
 sim = Simulation(top, sys, teg, platform=args.platform, platformProperties=platform_properties)
+print('number of particles in Simulation:', sim.context.getSystem().getNumParticles())
+print('shape of traj.xyz', traj.xyz.shape)
 # set up empty numpy array; fill with energies from traj
 potential_energies = np.zeros(len(traj))
 for i, frame_crds in enumerate(traj.xyz):
-    print(frame_crds.shape, sim.context.getSystem().getNumParticles())
     sim.context.setPositions(frame_crds)
     # if you also wanted to look at forces you'd request that here.
     state = sim.context.getState(getEnergy=True)
-    potential_energies[i] = state.getPotentialEnergy()
+    ene = state.getPotentialEnergy().value_in_unit(u.kilocalorie_per_mole)
+    print('frame:', 'energy (kcal/mol)', ene)
+    potential_energies[i] = ene
 # write energies to file
 pe_out = args.potential_energies
 if pe_out.suffix == '.txt':
