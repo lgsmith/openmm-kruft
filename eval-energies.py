@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 
 p = ap.ArgumentParser(formatter_class=ap.ArgumentDefaultsHelpFormatter)
-p.add_argument('system', type=str,
+p.add_argument('system', type=Path,
                help='system.xml to create an openmm simulation from.')
 p.add_argument('dcd', type=str,
                help='Trajectory to re-evaluate energies along.')
@@ -29,7 +29,7 @@ p.add_argument('--platform-properties', type=Path, default=None,
 
 args = p.parse_args()
 # deserialize system and open traj
-sys = mm.XmlSerializer.deserialize(args.system)
+sys = mm.XmlSerializer.deserialize(args.system.read_text())
 top = PDBFile(args.pdb_with_bonds)
 traj = md.load_dcd(args.dcd, top=args.pdb_with_bonds)
 teg = mm.VerletIntegrator(0.002)
@@ -47,8 +47,9 @@ else:
 sim = Simulation(top, sys, teg, platform=args.platform, platformProperties=platform_properties)
 # set up empty numpy array; fill with energies from traj
 potential_energies = np.zeros(len(traj))
-for i, frame in enumerate(traj):
-    sim.context.setPositions(frame.xyz)
+for i, frame_crds in enumerate(traj.xyz):
+    print(frame_crds.shape, sim.context.getSystem().getNumParticles())
+    sim.context.setPositions(frame_crds)
     # if you also wanted to look at forces you'd request that here.
     state = sim.context.getState(getEnergy=True)
     potential_energies[i] = state.getPotentialEnergy()
